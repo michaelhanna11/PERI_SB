@@ -11,6 +11,9 @@ import os
 import io
 from datetime import datetime
 
+# Set the page title for the browser tab
+st.set_page_config(page_title="PERI SB Frames")
+
 # Program metadata
 PROGRAM_VERSION = "1.0 - 2025"
 PROGRAM = "PERI Brace Frame Load Calculator"
@@ -203,7 +206,7 @@ brace_frame_data = {
                    60: {"e": 2.40, "Z": 132, "V1": 75, "V2": 22, "f": 1}},
             3.00: {40: {"e": 2.81, "Z": 125, "V1": 64, "V2": 28, "f": 1},
                    50: {"e": 2.40, "Z": 141, "V1": 75, "V2": 30, "f": 1},
-                   60: {"e": 2.17, "Z": 153, "V1": 83, "V2": 30, "f": 1}}
+                   60: {"e": 2.17, "Z": 153, "V1	element": 83, "V2": 30, "f": 1}}
         }
     },
     "SB-1": {
