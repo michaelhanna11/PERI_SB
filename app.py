@@ -417,7 +417,7 @@ def build_pdf_elements(brace_type, height, pressure, result, validation_messages
     header_data = [[logo, company_paragraph]]
     header_table = Table(header_data, colWidths=[60*mm, 120*mm])
     header_table.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('ALIGN', (1, 0), (1, 0), 'CENTER')]))
-    elements.extend([header_table, Spacer(1, 4*mm), Paragraph("Brace Frame Load Calculation Report", title_style)])
+    elements.extend([header_table, Spacer(1, 4*mm), Paragraph("PERI Brace Frame Load Calculation Report", title_style)])
 
     project_details = f"Project Number: {project_number}<br/>Project Name: {project_name}<br/>Date: {datetime.now().strftime('%B %d, %Y')}"
     elements.extend([Paragraph(project_details, subtitle_style), Spacer(1, 2*mm), Paragraph("Input Parameters", heading_style)])
@@ -496,7 +496,7 @@ def generate_pdf_report(brace_type, height, pressure, result, validation_message
     return pdf_buffer.getvalue()
 
 # Streamlit app
-st.title("Brace Frame Load Calculator")
+st.title("PERI Brace Frame Load Calculator")
 
 # Sidebar for inputs
 st.sidebar.header("Input Parameters")
@@ -557,7 +557,7 @@ else:
         st.download_button(
             label="Download PDF Report",
             data=pdf_data,
-            file_name=f"Brace_Frame_Calculation_Report_{project_name.replace(' ', '_')}.pdf",
+            file_name=f"PERI_Brace_Frame_Calculation_Report_{project_name.replace(' ', '_')}.pdf",
             mime="application/pdf"
         )
 
