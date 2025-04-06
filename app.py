@@ -13,7 +13,7 @@ from datetime import datetime
 
 # Program metadata
 PROGRAM_VERSION = "1.0 - 2025"
-PROGRAM = "Brace Frame Load Calculator"
+PROGRAM = "PERI Brace Frame Load Calculator"
 COMPANY_NAME = "tekhne Consulting Engineers"
 COMPANY_ADDRESS = "   "  # Update with actual address if needed
 LOGO_URL = "https://drive.google.com/uc?export=download&id=1VebdT2loVGX57noP9t2GgQhwCNn8AA3h"
