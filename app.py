@@ -1,7 +1,7 @@
 import streamlit as st
 import numpy as np
 
-# Comprehensive data storage for all brace frame types
+# Comprehensive data storage for all brace frame types (unchanged)
 brace_frame_data = {
     "SB-A+B": {
         "heights": [3.75, 4.00, 4.25, 4.50, 4.75, 5.00, 5.25, 5.50, 5.75, 6.00],
@@ -58,7 +58,7 @@ brace_frame_data = {
             7.50: {30: {"e": 1.56, "Z": 293, "V1": 69, "V2": 172, "f": 14},
                    40: {"e": 1.25, "Z": 379, "V1": 92, "V2": 216, "f": 18},
                    50: {"e": 1.06, "Z": 460, "V1": 114, "V2": 254, "f": 21}},
-            7.75: {30: {"e": 1.45, "Z": 304, "V1": 69, "V2": 186, "f": 16},
+            7.75: {30: {"e": 1.45, "Z": 304, "V1": 69, "V2": 186, "f": 12},
                    40: {"e": 1.15, "Z": 394, "V1": 92, "V2": 233, "f": 20},
                    50: {"e": 0.98, "Z": 478, "V1": 114, "V2": 274, "f": 23}},
             8.00: {30: {"e": 1.36, "Z": 314, "V1": 69, "V2": 198, "f": 18},
@@ -263,27 +263,21 @@ def get_loads(brace_type, height, pressure):
     heights = brace_frame_data[brace_type]["heights"]
     pressures = brace_frame_data[brace_type]["pressures"]
 
-    # Check if height and pressure are within bounds
     if height < min(heights) or height > max(heights) or pressure < min(pressures) or pressure > max(pressures):
         return f"Input out of range for {brace_type}. Height range: {min(heights)}-{max(heights)} m, Pressure range: {min(pressures)}-{max(pressures)} kN/m²."
 
-    # Find bounding heights and pressures
     h_low = max([h for h in heights if h <= height])
     h_high = min([h for h in heights if h >= height])
     p_low = max([p for p in pressures if p <= pressure])
     p_high = min([p for p in pressures if p >= pressure])
 
-    # Handle cases where data might be missing for higher pressures at certain heights
     if h_high not in data or p_high not in data[h_high]:
         return f"Data not available for {brace_type} at height {h_high} m and pressure {p_high} kN/m²."
 
-    # If exact match, return directly
     if h_low == h_high and p_low == p_high:
         return data[h_low][p_low]
 
-    # Interpolate for height and pressure
     if h_low == h_high:
-        # Only interpolate pressure
         loads_low = data[h_low][p_low]
         loads_high = data[h_low][p_high]
         result = {}
@@ -291,7 +285,6 @@ def get_loads(brace_type, height, pressure):
             result[key] = interpolate_value(pressure, p_low, p_high, loads_low[key], loads_high[key])
         return result
     elif p_low == p_high:
-        # Only interpolate height
         loads_low = data[h_low][p_low]
         loads_high = data[h_high][p_low]
         result = {}
@@ -299,7 +292,6 @@ def get_loads(brace_type, height, pressure):
             result[key] = interpolate_value(height, h_low, h_high, loads_low[key], loads_high[key])
         return result
     else:
-        # Bilinear interpolation (height and pressure)
         loads_ll = data[h_low][p_low]
         loads_lh = data[h_low][p_high] if p_high in data[h_low] else data[h_low][p_low]
         loads_hl = data[h_high][p_low]
@@ -310,6 +302,58 @@ def get_loads(brace_type, height, pressure):
             high_interp = interpolate_value(pressure, p_low, p_high, loads_hl[key], loads_hh[key]) if p_high in data[h_high] else loads_hl[key]
             result[key] = interpolate_value(height, h_low, h_high, low_interp, high_interp)
         return result
+
+def validate_bracing(brace_type, height, e):
+    """Validate diagonal bracing requirements based on document notes."""
+    validation_messages = []
+
+    if "SB-" in brace_type and ("A" in brace_type or "B" in brace_type or "C" in brace_type):
+        validation_messages.append("Recommendation: Pre-incline the Brace Frame by 2/3 of the calculated deflection.")
+
+    if brace_type == "SB-A+B":
+        if e <= 1.35 and height <= 5.25:
+            validation_messages.append("Diagonal Bracing B can be omitted during concreting.")
+        else:
+            validation_messages.append("Required: Diagonal Bracing A and B for concreting.")
+        validation_messages.append("Required: Diagonal Bracing for moving and lifting the formwork unit with the crane.")
+    elif brace_type == "SB-A0+A+B+C":
+        validation_messages.append("Required: Diagonal Bracing A, B, and C for concreting, horizontally moving, and lifting the formwork unit with the crane.")
+    elif brace_type == "SB-A+B+C":
+        validation_messages.append("Required: Diagonal Bracing A, B, and C for concreting.")
+        validation_messages.append("Required: Diagonal Bracing for horizontally moving and lifting the formwork unit with the crane.")
+    elif brace_type == "SB-B+C":
+        if e <= 1.35 and height <= 4.25:
+            validation_messages.append("Diagonal Bracing B can be omitted during concreting.")
+        else:
+            validation_messages.append("Required: Diagonal Bracing B and C for concreting.")
+        validation_messages.append("Required: Diagonal Bracing B or D for lifting with the crane.")
+    elif brace_type == "SB-A+C":
+        validation_messages.append("No diagonal bracing required for concreting.")
+        validation_messages.append("Required: Diagonal Bracing C for moving and lifting the formwork unit with the crane.")
+    elif brace_type == "SB-B":
+        if e > 1.35 and height >= 3.75:
+            validation_messages.append("Required: Diagonal Bracing B for concreting.")
+        else:
+            validation_messages.append("No diagonal bracing required for concreting until height reaches 3.75 m if e ≤ 1.35 m.")
+        validation_messages.append("Required: Diagonal Bracing for moving and lifting the formwork unit with the crane.")
+    elif brace_type == "SB-A":
+        validation_messages.append("No diagonal bracing required for concreting.")
+        validation_messages.append("Required: Diagonal Bracing C for moving and lifting the formwork unit with the crane.")
+    elif brace_type == "SB-1":
+        validation_messages.append("No diagonal bracing required for concreting.")
+        validation_messages.append("Required: Diagonal Bracing for moving and lifting the formwork unit with the crane.")
+        if e > 1.25:
+            validation_messages.append("Warning: Permissible width of influence exceeds maximum of 1.25 m.")
+    elif brace_type == "SB-2":
+        if height >= 5.00:
+            validation_messages.append("Required: Diagonal Bracing for concreting (height ≥ 5.00 m).")
+        else:
+            validation_messages.append("No diagonal bracing required for concreting (height < 5.00 m).")
+        validation_messages.append("Required: Diagonal Bracing for moving and lifting the formwork unit with the crane.")
+        if e > 1.25:
+            validation_messages.append("Warning: Permissible width of influence exceeds maximum of 1.25 m.")
+
+    return validation_messages
 
 # Streamlit app
 st.title("Brace Frame Load Calculator")
@@ -331,7 +375,9 @@ else:
     st.write(f"**Brace Frame:** {brace_type}")
     st.write(f"**Concreting Height:** {height} m")
     st.write(f"**Fresh Concrete Pressure:** {pressure} kN/m²")
-    st.subheader("Calculated Loads")
+    
+    # Calculated Loads (per meter)
+    st.subheader("Calculated Loads (Per Meter)")
     col1, col2 = st.columns(2)
     with col1:
         st.write(f"Permissible Width of Influence (e): **{result['e']:.2f} m**")
@@ -341,8 +387,35 @@ else:
         st.write(f"Spindle Force V2: **{result['V2']:.2f} kN/m**")
         st.write(f"Deflection (f): **{result['f']:.2f} mm/m**")
 
-# Add some additional info
+    # Final Values Based on Allowable Spacing
+    st.subheader(f"Final Values Based on {result['e']:.2f} m Spacing")
+    final_Z = result['Z'] * result['e']
+    final_V1 = result['V1'] * result['e']
+    final_V2 = result['V2'] * result['e']
+    final_f = result['f'] * result['e']
+    col3, col4 = st.columns(2)
+    with col3:
+        st.write(f"Anchor Tension Force (Z): **{final_Z:.2f} kN**")
+        st.write(f"Spindle Force V1: **{final_V1:.2f} kN**")
+    with col4:
+        st.write(f"Spindle Force V2: **{final_V2:.2f} kN**")
+        st.write(f"Deflection (f): **{final_f:.2f} mm**")
+
+    # Validation and additional notes
+    st.subheader("Validation and Notes")
+    validation_messages = validate_bracing(brace_type, height, result['e'])
+    for message in validation_messages:
+        if "Warning" in message:
+            st.warning(message)
+        elif "Required" in message:
+            st.info(message)
+        else:
+            st.success(message)
+
+# Sidebar notes
 st.sidebar.markdown("---")
 st.sidebar.write("**Notes:**")
 st.sidebar.write("- Values are interpolated if not exact matches.")
 st.sidebar.write("- Ensure inputs are within the supported ranges for each brace type.")
+st.sidebar.write("- All values refer to a width of influence of 1.00 m unless otherwise specified.")
+st.sidebar.write("- Final values are calculated by multiplying loads and deflection by the permissible width of influence (e).")
